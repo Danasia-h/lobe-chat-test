@@ -2,6 +2,133 @@
 
 # Changelog
 
+## [Version 2.0.0-next.269](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.268...v2.0.0-next.269)
+
+<sup>Released on **2026-01-12**</sup>
+
+#### ✨ Features
+
+- **electron**: Add custom titlebar for Electron windows.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **electron**: Add custom titlebar for Electron windows, closes [#11438](https://github.com/lobehub/lobe-chat/issues/11438) ([08f6ee3](https://github.com/lobehub/lobe-chat/commit/08f6ee3))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 2.0.0-next.268](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.267...v2.0.0-next.268)
+
+<sup>Released on **2026-01-12**</sup>
+
+#### ♻ Code Refactoring
+
+- **agentGroup**: Simplify LobeChatGroupChatConfig schema.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **agentGroup**: Simplify LobeChatGroupChatConfig schema, closes [#11431](https://github.com/lobehub/lobe-chat/issues/11431) ([a8c6b2c](https://github.com/lobehub/lobe-chat/commit/a8c6b2c))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 2.0.0-next.267](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.266...v2.0.0-next.267)
+
+<sup>Released on **2026-01-12**</sup>
+
+#### 🐛 Bug Fixes
+
+- **ChatInput**: Add missing MaxTokens setting to params popover.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **ChatInput**: Add missing MaxTokens setting to params popover, closes [#11412](https://github.com/lobehub/lobe-chat/issues/11412) [#11375](https://github.com/lobehub/lobe-chat/issues/11375) ([3db4389](https://github.com/lobehub/lobe-chat/commit/3db4389))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 2.0.0-next.266](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.265...v2.0.0-next.266)
+
+<sup>Released on **2026-01-11**</sup>
+
+#### 💄 Styles
+
+- **misc**: Improve cron jobs style.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Improve cron jobs style, closes [#11420](https://github.com/lobehub/lobe-chat/issues/11420) ([d1602f6](https://github.com/lobehub/lobe-chat/commit/d1602f6))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+## [Version 2.0.0-next.265](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.264...v2.0.0-next.265)
+
+<sup>Released on **2026-01-11**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix duplicate agent and group, Fix Windows desktop build error with macOS native module, force plain text paste in ChatInput editor.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix duplicate agent and group, closes [#11411](https://github.com/lobehub/lobe-chat/issues/11411) ([bc8aea4](https://github.com/lobehub/lobe-chat/commit/bc8aea4))
+- **misc**: Fix Windows desktop build error with macOS native module, closes [#11417](https://github.com/lobehub/lobe-chat/issues/11417) ([67a8114](https://github.com/lobehub/lobe-chat/commit/67a8114))
+- **misc**: Force plain text paste in ChatInput editor, closes [#11414](https://github.com/lobehub/lobe-chat/issues/11414) ([70daf13](https://github.com/lobehub/lobe-chat/commit/70daf13))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.264](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.263...v2.0.0-next.264)
 
 <sup>Released on **2026-01-11**</sup>
