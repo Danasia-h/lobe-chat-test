@@ -488,6 +488,7 @@ export default {
   'settings.title': 'Skill community settings',
   'showInPortal': 'View details in Workspace',
   'store.actions.cancel': 'Cancel',
+  'store.actions.configure': 'Configure',
   'store.actions.confirmUninstall': 'Uninstalling will clear Skill config. Continue?',
   'store.actions.detail': 'Details',
   'store.actions.install': 'Install',
