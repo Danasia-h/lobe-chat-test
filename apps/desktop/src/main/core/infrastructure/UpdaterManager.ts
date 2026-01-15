@@ -26,6 +26,7 @@ export class UpdaterManager {
   private downloading: boolean = false;
   private updateAvailable: boolean = false;
   private isManualCheck: boolean = false;
+  private usingFallbackProvider: boolean = false;
 
   constructor(app: AppCore) {
     this.app = app;
@@ -68,7 +69,7 @@ export class UpdaterManager {
       logger.info('Dev mode: Using dev-app-update.yml for update configuration');
     } else {
       // Only configure channel and update provider programmatically in production
-      autoUpdater.channel = channel;
+      // Note: channel is configured in configureUpdateProvider based on provider type
       autoUpdater.allowPrerelease = channel !== 'stable';
       logger.info(`Production mode: channel=${channel}, allowPrerelease=${channel !== 'stable'}`);
       this.configureUpdateProvider();
@@ -313,14 +314,19 @@ export class UpdaterManager {
 
   /**
    * Configure update provider based on channel
-   * - Stable channel + UPDATE_SERVER_URL: Use generic HTTP provider
-   * - Other channels (beta/nightly): Use GitHub provider
+   * - Stable channel + UPDATE_SERVER_URL: Use generic HTTP provider (S3) as primary, channel=stable
+   * - Other channels (beta/nightly) or no S3: Use GitHub provider, channel=latest
+   *
+   * Important: S3 has stable-mac.yml, GitHub has latest-mac.yml
    */
   private configureUpdateProvider() {
-    if (isStableChannel && UPDATE_SERVER_URL) {
-      // Stable channel uses custom update server (generic HTTP)
-      logger.info(`Configuring generic provider for stable channel`);
+    if (isStableChannel && UPDATE_SERVER_URL && !this.usingFallbackProvider) {
+      // Stable channel uses custom update server (generic HTTP) as primary
+      // S3 has stable-mac.yml, so we set channel to 'stable'
+      autoUpdater.channel = 'stable';
+      logger.info(`Configuring generic provider for stable channel (primary)`);
       logger.info(`Update server URL: ${UPDATE_SERVER_URL}`);
+      logger.info(`Channel set to: stable (will look for stable-mac.yml)`);
 
       autoUpdater.setFeedURL({
         provider: 'generic',
@@ -328,7 +334,11 @@ export class UpdaterManager {
       });
     } else {
       // Beta/nightly channels use GitHub, or fallback to GitHub if UPDATE_SERVER_URL not configured
-      logger.info(`Configuring GitHub provider for ${channel} channel`);
+      // GitHub releases have latest-mac.yml, so we use default channel (latest)
+      autoUpdater.channel = 'latest';
+      const reason = this.usingFallbackProvider ? '(fallback from S3)' : '';
+      logger.info(`Configuring GitHub provider for ${channel} channel ${reason}`);
+      logger.info(`Channel set to: latest (will look for latest-mac.yml)`);
 
       autoUpdater.setFeedURL({
         owner: githubConfig.owner,
@@ -339,6 +349,41 @@ export class UpdaterManager {
       logger.info(`GitHub update URL configured: ${githubConfig.owner}/${githubConfig.repo}`);
     }
   }
+
+  /**
+   * Switch to fallback provider (GitHub) and retry update check
+   * Called when primary provider (S3) fails
+   */
+  private switchToFallbackAndRetry = async () => {
+    // Only fallback if we're on stable channel with S3 configured and haven't already fallen back
+    if (!isStableChannel || !UPDATE_SERVER_URL || this.usingFallbackProvider) {
+      return false;
+    }
+
+    logger.info('Primary update server (S3) failed, switching to GitHub fallback...');
+    this.usingFallbackProvider = true;
+    this.configureUpdateProvider();
+
+    // Retry update check with fallback provider
+    try {
+      await autoUpdater.checkForUpdates();
+      return true;
+    } catch (error) {
+      logger.error('Fallback provider (GitHub) also failed:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Reset to primary provider for next update check
+   */
+  private resetToPrimaryProvider = () => {
+    if (this.usingFallbackProvider) {
+      logger.info('Resetting to primary update provider (S3)');
+      this.usingFallbackProvider = false;
+      this.configureUpdateProvider();
+    }
+  };
 
   private registerEvents() {
     logger.debug('Registering updater events');
@@ -351,6 +396,9 @@ export class UpdaterManager {
       logger.info(`Update available: ${info.version}`);
       this.updateAvailable = true;
 
+      // Reset to primary provider for next check cycle
+      this.resetToPrimaryProvider();
+
       if (this.isManualCheck) {
         this.mainWindow.broadcast('manualUpdateAvailable', info);
       } else {
@@ -362,13 +410,27 @@ export class UpdaterManager {
 
     autoUpdater.on('update-not-available', (info) => {
       logger.info(`Update not available. Current: ${info.version}`);
+
+      // Reset to primary provider for next check cycle
+      this.resetToPrimaryProvider();
+
       if (this.isManualCheck) {
         this.mainWindow.broadcast('manualUpdateNotAvailable', info);
       }
     });
 
-    autoUpdater.on('error', (err) => {
+    autoUpdater.on('error', async (err) => {
       logger.error('Error in auto-updater:', err);
+
+      // Try fallback to GitHub if S3 failed
+      if (!this.usingFallbackProvider && isStableChannel && UPDATE_SERVER_URL) {
+        logger.info('Attempting fallback to GitHub provider...');
+        const fallbackSucceeded = await this.switchToFallbackAndRetry();
+        if (fallbackSucceeded) {
+          return; // Fallback initiated, don't report error yet
+        }
+      }
+
       if (this.isManualCheck) {
         this.mainWindow.broadcast('updateError', err.message);
       }

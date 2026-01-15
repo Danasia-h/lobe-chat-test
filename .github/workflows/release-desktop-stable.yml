@@ -29,6 +29,21 @@ on:
         description: 'Version to build (e.g., 2.0.0)'
         required: true
         type: string
+      build_mac:
+        description: 'Build macOS (ARM64)'
+        required: false
+        type: boolean
+        default: true
+      build_windows:
+        description: 'Build Windows'
+        required: false
+        type: boolean
+        default: true
+      build_linux:
+        description: 'Build Linux'
+        required: false
+        type: boolean
+        default: true
       skip_s3_upload:
         description: 'Skip S3 upload (for testing)'
         required: false
@@ -36,6 +51,11 @@ on:
         default: true
       skip_github_release:
         description: 'Skip GitHub release upload (for testing)'
+        required: false
+        type: boolean
+        default: true
+      use_self_hosted_mac:
+        description: 'Use self-hosted macOS ARM64 runner'
         required: false
         type: boolean
         default: true
@@ -90,47 +110,59 @@ jobs:
           fi
 
   # ============================================
-  # 代码质量检查
+  # 配置构建矩阵 (检查自托管 Runner)
   # ============================================
-  test:
-    name: Code quality check
+  configure-build:
     needs: [check-stable]
     if: needs.check-stable.outputs.is_stable == 'true'
+    name: Configure Build Matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Checkout base
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+      - name: Generate Matrix
+        id: set-matrix
+        run: |
+          # 基础矩阵
+          static_matrix='[]'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          package-manager-cache: false
+          # Windows
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] || [[ "${{ inputs.build_windows }}" == "true" ]]; then
+            static_matrix=$(echo "$static_matrix" | jq -c '. + [{"os": "windows-2025", "name": "windows-2025"}]')
+          fi
 
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+          # Linux
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] || [[ "${{ inputs.build_linux }}" == "true" ]]; then
+            static_matrix=$(echo "$static_matrix" | jq -c '. + [{"os": "ubuntu-latest", "name": "ubuntu-latest"}]')
+          fi
 
-      - name: Install deps
-        run: bun i
+          # macOS (ARM64)
+          # Release 事件默认使用 self-hosted，手动触发时根据 input 决定
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] || [[ "${{ inputs.build_mac }}" == "true" ]]; then
+            if [[ "${{ github.event_name }}" != "workflow_dispatch" ]] || [[ "${{ inputs.use_self_hosted_mac }}" == "true" ]]; then
+               echo "Using Self-Hosted Runner for macOS ARM64"
+               arm_entry='{"os": ["self-hosted", "macOS", "ARM64"], "name": "macos-arm64"}'
+            else
+               echo "Using GitHub-Hosted Runner for macOS ARM64"
+               arm_entry='{"os": "macos-14", "name": "macos-arm64"}'
+            fi
+            static_matrix=$(echo "$static_matrix" | jq -c --argjson entry "$arm_entry" '. + [$entry]')
+          fi
 
-      - name: Lint
-        run: bun run lint
+          # 输出
+          echo "matrix={\"include\":$static_matrix}" >> $GITHUB_OUTPUT
 
   # ============================================
   # 多平台构建
   # ============================================
   build:
-    needs: [check-stable, test]
+    needs: [check-stable, configure-build]
     if: needs.check-stable.outputs.is_stable == 'true'
     name: Build Desktop App
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        os: [macos-latest, macos-15-intel, windows-2025, ubuntu-latest]
+      fail-fast: false
+      matrix: ${{ fromJson(needs.configure-build.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -181,7 +213,9 @@ jobs:
       # Linux 构建
       - name: Build artifact on Linux
         if: runner.os == 'Linux'
-        run: npm run desktop:build
+        run: |
+          npm run desktop:build
+          tar -czf apps/desktop/release/lobehub-renderer.tar.gz -C out .
         env:
           UPDATE_CHANNEL: stable
           UPDATE_SERVER_URL: ${{ secrets.UPDATE_SERVER_URL }}
@@ -194,7 +228,7 @@ jobs:
       - name: Upload artifacts
         uses: ./.github/actions/desktop-upload-artifacts
         with:
-          artifact-name: release-${{ matrix.os }}
+          artifact-name: release-${{ matrix.name }}
 
   # ============================================
   # 合并 macOS 多架构文件
@@ -277,6 +311,7 @@ jobs:
           # 手动触发时创建为 draft
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           files: |
+            release/stable*
             release/latest*
             release/*.dmg*
             release/*.zip*
@@ -295,9 +330,10 @@ jobs:
   # S3 目录结构:
   #   s3://bucket/
   #     stable/
-  #       latest-mac.yml      ← electron-updater 检查更新
-  #       latest.yml          ← Windows
-  #       latest-linux.yml    ← Linux
+  #       stable-mac.yml      ← electron-updater 检查更新 (stable channel)
+  #       stable.yml          ← Windows (stable channel)
+  #       stable-linux.yml    ← Linux (stable channel)
+  #       latest-mac.yml      ← fallback for GitHub provider
   #       {version}/          ← 版本目录
   #         *.dmg, *.zip, *.exe, ...
   # ============================================
@@ -321,15 +357,11 @@ jobs:
           echo ""
           echo "📋 Version: ${{ needs.check-stable.outputs.version }}"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.UPDATE_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.UPDATE_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.UPDATE_S3_REGION || 'us-east-1' }}
-
       - name: Upload to S3
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.UPDATE_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.UPDATE_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.UPDATE_S3_REGION || 'us-east-1' }}
           S3_BUCKET: ${{ secrets.UPDATE_S3_BUCKET }}
           S3_ENDPOINT: ${{ secrets.UPDATE_S3_ENDPOINT }}
           VERSION: ${{ needs.check-stable.outputs.version }}
@@ -367,14 +399,54 @@ jobs:
             fi
           done
 
-          # 2. 上传 manifest 到根目录 (electron-updater 需要)
+          # 2. 创建 stable*.yml (从 latest*.yml 复制，并修改 URL 加上版本目录前缀)
+          # electron-updater 在 channel=stable 时会找 stable-mac.yml
+          # S3 目录结构: stable/{version}/xxx.dmg，所以 URL 需要加上 {version}/ 前缀
           echo ""
-          echo "📋 Uploading manifest files to s3://$S3_BUCKET/stable/"
+          echo "📋 Creating stable*.yml files from latest*.yml..."
           for yml in release/latest*.yml; do
             if [ -f "$yml" ]; then
+              stable_name=$(basename "$yml" | sed 's/latest/stable/')
+              # 复制并修改 URL: 给所有 url 字段加上版本目录前缀
+              # url: xxx.dmg -> url: {VERSION}/xxx.dmg
+              sed "s|url: |url: $VERSION/|g" "$yml" > "release/$stable_name"
+              echo "   📄 Created $stable_name from $(basename $yml) with URL prefix: $VERSION/"
+            fi
+          done
+
+          # 3. 创建 renderer manifest (用于验证 renderer tar 完整性)
+          echo ""
+          echo "📋 Creating renderer manifest..."
+          RENDERER_TAR="release/lobehub-renderer.tar.gz"
+          if [ -f "$RENDERER_TAR" ]; then
+            RENDERER_SHA512=$(shasum -a 512 "$RENDERER_TAR" | awk '{print $1}' | xxd -r -p | base64)
+            RENDERER_SIZE=$(stat -f%z "$RENDERER_TAR" 2>/dev/null || stat -c%s "$RENDERER_TAR")
+            RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            echo "version: $VERSION" > "release/stable-renderer.yml"
+            echo "files:" >> "release/stable-renderer.yml"
+            echo "  - url: $VERSION/lobehub-renderer.tar.gz" >> "release/stable-renderer.yml"
+            echo "    sha512: $RENDERER_SHA512" >> "release/stable-renderer.yml"
+            echo "    size: $RENDERER_SIZE" >> "release/stable-renderer.yml"
+            echo "path: $VERSION/lobehub-renderer.tar.gz" >> "release/stable-renderer.yml"
+            echo "sha512: $RENDERER_SHA512" >> "release/stable-renderer.yml"
+            echo "releaseDate: '$RELEASE_DATE'" >> "release/stable-renderer.yml"
+            echo "   📄 Created stable-renderer.yml with SHA512 checksum"
+          else
+            echo "   ⚠️ Renderer tar not found, skipping manifest creation"
+          fi
+
+          # 4. 上传 manifest 到根目录和版本目录
+          # 根目录: electron-updater 需要，会被每次发版覆盖
+          # 版本目录: 作为存档保留
+          echo ""
+          echo "📋 Uploading manifest files..."
+          for yml in release/stable*.yml release/latest*.yml; do
+            if [ -f "$yml" ]; then
               filename=$(basename "$yml")
-              echo "   ↗️ $filename"
+              echo "   ↗️ $filename -> s3://$S3_BUCKET/stable/$filename"
               aws s3 cp "$yml" "s3://$S3_BUCKET/stable/$filename" $ENDPOINT_ARG
+              echo "   ↗️ $filename -> s3://$S3_BUCKET/stable/$VERSION/$filename (archive)"
+              aws s3 cp "$yml" "s3://$S3_BUCKET/stable/$VERSION/$filename" $ENDPOINT_ARG
             fi
           done
 
