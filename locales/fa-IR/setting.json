@@ -254,6 +254,7 @@
   "plugin.settings.title": "پیکربندی مهارت {{id}}",
   "plugin.settings.tooltip": "پیکربندی مهارت",
   "plugin.store": "فروشگاه مهارت",
+  "publishToCommunity": "انتشار در انجمن",
   "settingAgent.avatar.sizeExceeded": "حجم تصویر بیش از ۱ مگابایت است، لطفاً تصویر کوچکتری انتخاب کنید",
   "settingAgent.avatar.title": "آواتار",
   "settingAgent.backgroundColor.title": "رنگ پس‌زمینه",

@@ -254,6 +254,7 @@
   "plugin.settings.title": "{{id}} Yetenek Yapılandırması",
   "plugin.settings.tooltip": "Yetenek Yapılandırması",
   "plugin.store": "Yetenek Mağazası",
+  "publishToCommunity": "Topluluğa Yayınla",
   "settingAgent.avatar.sizeExceeded": "Görsel boyutu 1MB sınırını aşıyor, lütfen daha küçük bir görsel seçin",
   "settingAgent.avatar.title": "Avatar",
   "settingAgent.backgroundColor.title": "Arka Plan Rengi",

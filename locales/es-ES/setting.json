@@ -254,6 +254,7 @@
   "plugin.settings.title": "Configuración de Habilidad {{id}}",
   "plugin.settings.tooltip": "Configuración de Habilidad",
   "plugin.store": "Tienda de Habilidades",
+  "publishToCommunity": "Publicar en la comunidad",
   "settingAgent.avatar.sizeExceeded": "El tamaño de la imagen excede el límite de 1MB, por favor elige una imagen más pequeña",
   "settingAgent.avatar.title": "Avatar",
   "settingAgent.backgroundColor.title": "Color de Fondo",

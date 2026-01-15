@@ -254,6 +254,7 @@
   "plugin.settings.title": "Configurazione Competenza {{id}}",
   "plugin.settings.tooltip": "Configurazione Competenza",
   "plugin.store": "Skill Store",
+  "publishToCommunity": "Pubblica nella community",
   "settingAgent.avatar.sizeExceeded": "La dimensione dell'immagine supera il limite di 1MB, scegli un'immagine più piccola",
   "settingAgent.avatar.title": "Avatar",
   "settingAgent.backgroundColor.title": "Colore di Sfondo",

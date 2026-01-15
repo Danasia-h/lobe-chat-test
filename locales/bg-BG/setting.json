@@ -254,6 +254,7 @@
   "plugin.settings.title": "Конфигурация на умение {{id}}",
   "plugin.settings.tooltip": "Конфигурация на умение",
   "plugin.store": "Магазин за умения",
+  "publishToCommunity": "Публикувай в общността",
   "settingAgent.avatar.sizeExceeded": "Размерът на изображението надвишава лимита от 1MB, моля изберете по-малко изображение",
   "settingAgent.avatar.title": "Аватар",
   "settingAgent.backgroundColor.title": "Цвят на фона",

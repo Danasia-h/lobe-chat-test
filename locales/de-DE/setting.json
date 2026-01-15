@@ -254,6 +254,7 @@
   "plugin.settings.title": "{{id}} Fähigkeitenkonfiguration",
   "plugin.settings.tooltip": "Fähigkeitenkonfiguration",
   "plugin.store": "Fähigkeiten-Store",
+  "publishToCommunity": "In der Community veröffentlichen",
   "settingAgent.avatar.sizeExceeded": "Bildgröße überschreitet das Limit von 1 MB, bitte wählen Sie ein kleineres Bild",
   "settingAgent.avatar.title": "Avatar",
   "settingAgent.backgroundColor.title": "Hintergrundfarbe",

@@ -254,6 +254,7 @@
   "plugin.settings.title": "{{id}} Vaardigheidsconfiguratie",
   "plugin.settings.tooltip": "Vaardigheidsconfiguratie",
   "plugin.store": "Vaardighedenwinkel",
+  "publishToCommunity": "Publiceren in de community",
   "settingAgent.avatar.sizeExceeded": "Afbeeldingsgrootte overschrijdt de limiet van 1 MB, kies een kleinere afbeelding",
   "settingAgent.avatar.title": "Avatar",
   "settingAgent.backgroundColor.title": "Achtergrondkleur",
