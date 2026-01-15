@@ -1,5 +1,4 @@
 import useSWR, { type SWRHook } from 'swr';
-import useSWRMutation from 'swr/mutation';
 
 /**
  * This type of request method is relatively flexible data, which will be triggered on the first time
@@ -67,14 +66,21 @@ export const useOnlyFetchOnceSWR: SWRHook = (key, fetch, config) =>
  * 可以很简单地完成 loading / error 态的交互处理，同时，相同 swr key 的请求会自动共享 loading 态（例如新建助理按钮和右上角的 + 号）
  * 非常适用于新建等操作。
  *
- * 使用 useSWRMutation 而非 useSWR，因为 useSWR 即使设置了 revalidateOnMount: false，
- * 在缓存为空时仍会自动调用 fetcher。而 useSWRMutation 只会在手动调用 trigger 时执行。
+ * 设置 fallbackData 为空对象，让 SWR 认为已有初始数据，结合 revalidateOnMount: false 阻止自动 fetch。
  */
-export const useActionSWR = <T>(key: string | any[], fetcher: () => Promise<T>, config?: any) => {
-  const { trigger, isMutating, ...rest } = useSWRMutation(key, fetcher, config);
-  // Return with legacy property names for backward compatibility
-  return { ...rest, isValidating: isMutating, mutate: trigger };
-};
+// @ts-ignore
+export const useActionSWR: SWRHook = (key, fetch, config) =>
+  useSWR(key, fetch, {
+    // Use empty object as fallback to prevent auto-fetch when cache is empty
+    // Combined with revalidateOnMount: false, SWR won't call fetcher on mount
+    fallbackData: {},
+    refreshWhenHidden: false,
+    refreshWhenOffline: false,
+    revalidateOnFocus: false,
+    revalidateOnMount: false,
+    revalidateOnReconnect: false,
+    ...config,
+  });
 
 export interface SWRRefreshParams<T, A = (...args: any[]) => any> {
   action: A;
